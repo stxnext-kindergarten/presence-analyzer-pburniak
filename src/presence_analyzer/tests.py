@@ -7,7 +7,7 @@ import json
 import datetime
 import unittest
 
-from presence_analyzer import main, views, utils
+from presence_analyzer import main, views, utils  # pylint: disable=unused-import
 
 
 TEST_DATA_CSV = os.path.join(
@@ -52,6 +52,47 @@ class PresenceAnalyzerViewsTestCase(unittest.TestCase):
         data = json.loads(resp.data)
         self.assertEqual(len(data), 2)
         self.assertDictEqual(data[0], {u'user_id': 10, u'name': u'User 10'})
+
+    def test_mean_weekday_view(self):
+        """
+        Test mean presence time grouped by weekday
+        """
+        response = self.client.get('/api/v1/mean_time_weekday/10')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.content_type, 'application/json')
+        data = json.loads(response.data)
+        self.assertEqual(len(data), 7)
+        self.assertEqual(data[0], [u'Mon', 0])
+        self.assertEqual(data[1], [u'Tue', 30047.0])
+        self.assertEqual(data[6], [u'Sun', 0])
+
+    def test_fail_mean_weekday_view(self):
+        """
+        Test fail scenario mean time presence time for unknown user
+        """
+        response = self.client.get('/api/v1/mean_time_weekday/999999')
+        self.assertEqual(response.status_code, 404)
+
+    def test_total_weekday_view(self):
+        """
+        Test total presence time grouped by weekday
+        """
+        response = self.client.get('/api/v1/presence_weekday/10')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.content_type, 'application/json')
+        data = json.loads(response.data)
+        self.assertEqual(len(data), 8)
+        self.assertEqual(data[0], [u'Weekday', u'Presence (s)'])
+        self.assertEqual(data[1], [u'Mon', 0])
+        self.assertEqual(data[2], [u'Tue', 30047])
+        self.assertEqual(data[7], [u'Sun', 0])
+
+    def test_fail_total_weekday_view(self):
+        """
+        Test fail scenario total presence time for unknown user
+        """
+        response = self.client.get('/api/v1/presence_weekday/999999')
+        self.assertEqual(response.status_code, 404)
 
 
 class PresenceAnalyzerUtilsTestCase(unittest.TestCase):
