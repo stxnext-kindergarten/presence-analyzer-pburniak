@@ -40,7 +40,7 @@ class PresenceAnalyzerViewsTestCase(unittest.TestCase):
         """
         resp = self.client.get('/')
         self.assertEqual(resp.status_code, 302)
-        assert resp.headers['Location'].endswith('/presence_weekday.html')
+        self.assertTrue(resp.headers['Location'].endswith('/presence_weekday'))
 
     def test_api_users(self):
         """
@@ -94,6 +94,25 @@ class PresenceAnalyzerViewsTestCase(unittest.TestCase):
         response = self.client.get('/api/v1/presence_weekday/999999')
         self.assertEqual(response.status_code, 404)
 
+    def test_start_end(self):
+        """
+        Test mean start and end time by weekdays.
+        """
+        response = self.client.get('/api/v1/presence_start_end/10')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.content_type, 'application/json')
+        data = json.loads(response.data)
+        self.assertEqual(len(data), 3)
+        self.assertEqual(data[0], [u'Mon', 34745, 64792])
+        self.assertEqual(data[2], [u'Wed', 38926, 62631])
+
+    def test_fail_start_end(self):
+        """
+        Test fail scenario mean start and end time for unknown user.
+        """
+        response = self.client.get('/api/v1/presence_start_end/999999')
+        self.assertEqual(response.status_code, 404)
+
 
 class PresenceAnalyzerUtilsTestCase(unittest.TestCase):
     """
@@ -126,6 +145,26 @@ class PresenceAnalyzerUtilsTestCase(unittest.TestCase):
             data[10][sample_date]['start'],
             datetime.time(9, 39, 5)
         )
+
+    def test_get_mean_start_end_times(self):
+        """
+        Test helper fuction for calculating mean start and end time by weekdays.
+        """
+        user_data = {
+            datetime.date(2013, 9, 10): {
+                'start': datetime.time(9, 39, 5),
+                'end': datetime.time(17, 59, 52)},
+            datetime.date(2013, 9, 12): {
+                'start': datetime.time(10, 48, 46),
+                'end': datetime.time(17, 23, 51)},
+            datetime.date(2013, 9, 17): {
+                'start': datetime.time(9, 19, 52),
+                'end': datetime.time(16, 7, 37)}}
+
+        counted_means = utils.mean_start_end(user_data)
+        self.assertEqual(len(counted_means), 2)
+        expected_means = [(34168, 61424), (38926, 62631)]
+        self.assertEqual(counted_means, expected_means)
 
 
 def suite():
